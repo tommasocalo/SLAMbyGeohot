@@ -5,14 +5,14 @@ import cv2
 from display import Display
 w = 1920//2
 h = 1080//2
-F = 1
+F = 200
 disp = Display(w,h)
 K = np.array(([F,0,w//2],[0,F,h//2],[0,0,1]))
 fe = Extractor(K)
 
 def process_frame(img):
    img = cv2.resize(img,(w,h))
-   matches = fe.extract(img)
+   matches, Rt  = fe.extract(img)
 
    def denormalize(pt):
         return int(round(pt[0] + img.shape[0]/2)), int(round(pt[1] + img.shape[1]/2))
