@@ -30,21 +30,18 @@ def denormalize(K,pt):
     return int(round(ret[0])), int(round(ret[1]))
 
 def match(f1,f2):
-    ret = []
-    matches = self.bf.knnMatch(f1.des, f2.des, k = 2)
+    bf=cv2.BFMatcher(cv2.NORM_HAMMING)
+    matches = bf.knnMatch(f1.des, f2.des, k = 2)
 
+    ret = []
     for m,n in matches:
         if m.distance < 0.75*n.distance:
-            kp1 = f1.kps[m.queryIdx].pt
-            kp2 =  f2.kps['kps'][m.trainIdx].pt
-            ret.append((kp1,kp2))
+            p1 = f1.pts[m.queryIdx]
+            p2 =  f2.pts[m.trainIdx]
+            ret.append((p1,p2))
 
     assert len(ret) >= 8
     ret = np.array(ret)
-
-    #normalize choords
-    ret[:,0,:] = self.normalize(ret[:,0,:])
-    ret[:,1,:] = self.normalize(ret[:,1,:])
 
     #fit matrix
     model, inliers = ransac((ret[:,0], ret[:,1]),
@@ -58,19 +55,17 @@ def match(f1,f2):
     Rt  = extractRt(model.params)
 
     #return
-    self.last = {'kps':kps,'des':des}
     return ret, Rt
 
 
 class Frame(object):
-    def __init__(self,img,K,extractor):
+    def __init__(self,img,K):
 
         self.K = K
         self.Kinv = np.linalg.inv(self.K)
 
-        self,pts, self.des  = fe.extract(img)
-        self.pts = normalize(self.pts)
-        self.bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+        pts, self.des  = extract(img)
+        self.pts = normalize(self.Kinv,pts)
 
 
 def extract(img):
@@ -79,4 +74,4 @@ def extract(img):
 
     kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
     kps, des = orb.compute(img,kps)
-    return (np.array(pts).reshape(-1,2),des)
+    return np.array([(kp.pt[0],kp.pt[1]) for kp in kps]),des
